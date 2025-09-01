@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hotel Room Reservation System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .controls {
+      text-align: center;
+      margin: 20px 0;
+    }
+    input {
+      padding: 8px;
+      width: 150px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 8px 14px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .hotel {
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: 10px;
+    }
+    .floor {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+    .room {
+      width: 50px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .available { background: #28a745; color: white; }
+    .booked { background: #dc3545; color: white; }
+  </style>
+</head>
+<body>
+  <h1>🏨 Hotel Room Reservation System</h1>
+
+  <div class="controls">
+    <input type="number" id="numRooms" min="1" max="5" placeholder="Enter 1-5 rooms">
+    <button onclick="bookRooms()">Book Rooms</button>
+    <button onclick="randomOccupancy()">Random Occupancy</button>
+    <button onclick="resetHotel()">Reset Hotel</button>
+  </div>
+
+  <div id="output" style="text-align:center; margin-bottom:20px;"></div>
+
+  <div class="hotel" id="hotel"></div>
+
+  <script>
+    let hotel = {};
+
+    // Initialize hotel
+    function initHotel() {
+      hotel = {};
+      for (let f = 1; f <= 9; f++) {
+        hotel[f] = [];
+        for (let r = 1; r <= 10; r++) {
+          hotel[f].push({ id: f * 100 + r, booked: false });
+        }
+      }
+      hotel[10] = [];
+      for (let r = 1; r <= 7; r++) {
+        hotel[10].push({ id: 1000 + r, booked: false });
+      }
+      renderHotel();
+    }
+
+    // Render hotel layout
+    function renderHotel() {
+      let hotelDiv = document.getElementById("hotel");
+      hotelDiv.innerHTML = "";
+      for (let floor = 1; floor <= 10; floor++) {
+        if (!hotel[floor]) continue;
+        let floorDiv = document.createElement("div");
+        floorDiv.className = "floor";
+        hotel[floor].forEach(room => {
+          let roomDiv = document.createElement("div");
+          roomDiv.className = "room " + (room.booked ? "booked" : "available");
+          roomDiv.innerText = room.id;
+          floorDiv.appendChild(roomDiv);
+        });
+        hotelDiv.appendChild(floorDiv);
+      }
+    }
+
+    // Travel time calculation
+    function travelTime(r1, r2) {
+      let f1 = r1 >= 1000 ? 10 : Math.floor(r1 / 100);
+      let f2 = r2 >= 1000 ? 10 : Math.floor(r2 / 100);
+      let vertical = Math.abs(f1 - f2) * 2;
+      let horizontal = Math.abs((r1 % 100) - (r2 % 100));
+      return vertical + horizontal;
+    }
+
+    // Book rooms
+    function bookRooms() {
+      let numRooms = parseInt(document.getElementById("numRooms").value);
+      let output = document.getElementById("output");
+
+      if (isNaN(numRooms) || numRooms < 1 || numRooms > 5) {
+        output.innerHTML = "❌ Enter a valid number (1-5).";
+        return;
+      }
+
+      let bestChoice = null;
+      let bestTime = Infinity;
+
+      for (let floor in hotel) {
+        let available = hotel[floor].filter(r => !r.booked).map(r => r.id);
+        if (available.length >= numRooms) {
+          for (let i = 0; i <= available.length - numRooms; i++) {
+            let chosen = available.slice(i, i + numRooms);
+            let time = travelTime(chosen[0], chosen[chosen.length - 1]);
+            if (time < bestTime) {
+              bestTime = time;
+              bestChoice = chosen;
+            }
+          }
+        }
+      }
+
+      if (!bestChoice) {
+        let available = [];
+        for (let floor in hotel) {
+          hotel[floor].forEach(r => { if (!r.booked) available.push(r.id); });
+        }
+        if (available.length < numRooms) {
+          output.innerHTML = "❌ Not enough rooms.";
+          return;
+        }
+        bestChoice = available.slice(0, numRooms);
+        bestTime = travelTime(bestChoice[0], bestChoice[bestChoice.length - 1]);
+      }
+
+      for (let floor in hotel) {
+        hotel[floor].forEach(r => {
+          if (bestChoice.includes(r.id)) r.booked = true;
+        });
+      }
+
+      output.innerHTML = `✅ Booked: <b>${bestChoice.join(", ")}</b> | ⏱️ Travel Time: ${bestTime} mins`;
+      renderHotel();
+    }
+
+    // Random occupancy
+    function randomOccupancy() {
+      for (let floor in hotel) {
+        hotel[floor].forEach(r => {
+          r.booked = Math.random() < 0.3;
+        });
+      }
+      renderHotel();
+      document.getElementById("output").innerHTML = "🎲 Random occupancy generated.";
+    }
+
+    // Reset hotel
+    function resetHotel() {
+      initHotel();
+      document.getElementById("output").innerHTML = "🔄 Hotel reset.";
+    }
+
+    // Init on load
+    initHotel();
+  </script>
+</body>
+</html>
